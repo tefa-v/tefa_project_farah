@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>معاينة الكود البرمجي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+    <style>
+        :root {
+            --bg-main: #0f111a;
+            --bg-editor: #1e1e2e;
+            --bg-sidebar: #181825;
+            --topbar-bg: #2d2d3d;
+            --accent-color: #cba6f7;
+            --text-color: #cdd6f4;
+            --border-color: #313244;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-navbar {
+            background-color: var(--bg-sidebar);
+            height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .dot-close { background-color: #f38ba8; }
+        .dot-minimize { background-color: #f9e2af; }
+        .dot-maximize { background-color: #a6e3a1; }
+
+        .editor-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            background-color: var(--topbar-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: 'Cairo', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-color);
+            color: #11111b;
+        }
+
+        .editor-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        .code-container {
+            background-color: var(--bg-editor);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .tab-bar {
+            background-color: var(--bg-sidebar);
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background-color: var(--bg-editor);
+            color: var(--accent-color);
+            font-size: 14px;
+            border-top: 2px solid var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .code-viewer-area {
+            max-height: calc(100vh - 160px);
+            overflow: auto;
+        }
+
+        pre[class*="language-"] {
+            margin: 0 !important;
+            padding: 15px !important;
+            border-radius: 0 !important;
+            background: var(--bg-editor) !important;
+            font-family: 'Fira Code', monospace !important;
+            font-size: 13.5px !important;
+            line-height: 1.6 !important;
+            direction: ltr !important;
+            text-align: left !important;
+        }
+
+        code[class*="language-"] {
+            font-family: 'Fira Code', monospace !important;
+            direction: ltr !important;
+            text-align: left !important;
+            white-space: pre !important;
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar {
+                padding: 0 10px;
+            }
+
+            .editor-title span {
+                font-size: 12px;
+            }
+
+            .btn {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+
+            .editor-wrapper {
+                padding: 8px;
+            }
+
+            pre[class*="language-"] {
+                font-size: 11.5px !important;
+                padding: 10px !important;
+            }
+
+            .code-viewer-area {
+                max-height: calc(100vh - 120px);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-navbar">
+        <div class="window-controls">
+            <span class="dot dot-close"></span>
+            <span class="dot dot-minimize"></span>
+            <span class="dot dot-maximize"></span>
+        </div>
+        <div class="editor-title">
+            <i class="fa-solid fa-code" style="color: var(--accent-color);"></i>
+            <span>عرض الكود البرمجي</span>
+        </div>
+        <button class="btn" onclick="copyCode()"><i class="fa-regular fa-copy"></i> نسخ الكود</button>
+    </div>
+
+    <div class="editor-wrapper">
+        <div class="code-container">
+            <div class="tab-bar">
+                <div class="tab">
+                    <i class="fa-brands fa-html5" style="color: #e44d26;"></i>
+                    index.html
+                </div>
+            </div>
+            <div class="code-viewer-area">
+                <pre class="line-numbers"><code class="language-html" id="code-block"></code></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script>
+        const htmlSource = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>مادة الكمبيوتر | تصميم الواجهات</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    padding: 20px;
+    line-height: 1.8;
+}
+.container {
+    background-color: white;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+}
+h1 {
+    color: blue;
+    text-align: center;
+}
+h2 {
+    color: green;
+    text-align: center;
+}
+h3 {
+    color: darkblue;
+}
+img {
+    display: block;
+    margin: 10px auto;
+    border: 1px solid #ccc;
+    max-width: 100%;
+}
+.section {
+    border-bottom: 2px dashed #ccc;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+}
+.quiz-btn {
+    background-color: #ff9800;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+.quiz-box {
+    background-color: #fffde7;
+    border: 1px solid #ffeb3b;
+    padding: 15px;
+    margin-top: 10px;
+    display: none;
+}
+.option-btn {
+    background-color: #e0e0e0;
+    color: black;
+    border: 1px solid #999;
+    padding: 10px;
+    margin-bottom: 5px;
+    width: 100%;
+    text-align: right;
+    cursor: pointer;
+    font-size: 16px;
+}
+.feedback {
+    font-weight: bold;
+    margin-top: 10px;
+}
+video {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="section">
+        <h1>مشروع مادة الكمبيوتر</h1>
+        <h2>أهلاً وسهلاً بكم في مشروعنا التعليمي حول تصميم واجهات الويب</h2>
+        <p>
+            تصميم واجهات المستخدم (UI/UX) هو الفن الذي يجمع بين الجمال البصري وسهولة الاستخدام. الواجهة الجيدة ليست فقط شكلاً جذاباً، بل هي جسر يربط المستخدم بمحتوى الموقع بسلاسة وذكاء.
+        </p>
+        <img src="1.jpg" width="400" alt="صورة 1">
+        
+        <button class="quiz-btn" onclick="toggleQuiz('q-intro')">اختبر معلوماتك</button>
+        <div id="q-intro" class="quiz-box">
+            <p><strong>ما هو الهدف الأساسي من تصميم واجهات المستخدم؟</strong></p>
+            <div class="options">
+                <button class="option-btn" onclick="checkAnswer(this, false)">جعل الموقع مليئاً بالألوان فقط</button>
+                <button class="option-btn" data-correct="true" onclick="checkAnswer(this, true)">دمج الجمال البصري مع سهولة الاستخدام</button>
+                <button class="option-btn" onclick="checkAnswer(this, false)">تقليل سرعة الموقع</button>
+            </div>
+            <div class="feedback"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>1. فهم الهدف والجمهور (البحث والتخطيط)</h3>
+        <p>
+            قبل رسم أي خط، يجب أن نسأل: لمن نصمم؟ دراسة الجمهور هي حجر الأساس. ثم نقوم بعمل تخطيط مبدئي لتحديد أماكن العناصر.
+        </p>
+        <img src="2.jpg" width="250" alt="صورة 2">
+        <img src="3.jpg" width="250" alt="صورة 3">
+
+        <button class="quiz-btn" onclick="toggleQuiz('q-1')">سؤال سريع</button>
+        <div id="q-1" class="quiz-box">
+            <p><strong>لماذا نعتبر دراسة الجمهور "حجر الأساس"؟</strong></p>
+            <div class="options">
+                <button class="option-btn" data-correct="true" onclick="checkAnswer(this, true)">لمعرفة من نصمم لهم وحل مشاكلهم</button>
+                <button class="option-btn" onclick="checkAnswer(this, false)">لمعرفة الألوان المفضلة للمصمم</button>
+            </div>
+            <div class="feedback"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>2. الهرمية البصرية (Visual Hierarchy)</h3>
+        <p>
+            هي لغة لتوجيه عين المستخدم. نكبر العناوين المهمة ونستخدم ألواناً بارزة ليقرأ الزائر بالترتيب الذي نريده.
+        </p>
+        <img src="4.jpg" width="350" alt="صورة 4">
+
+        <button class="quiz-btn" onclick="toggleQuiz('q-2')">سؤال سريع</button>
+        <div id="q-2" class="quiz-box">
+            <p><strong>كيف نوجه عين المستخدم داخل الصفحة؟</strong></p>
+            <div class="options">
+                <button class="option-btn" onclick="checkAnswer(this, false)">بإخفاء النصوص</button>
+                <button class="option-btn" data-correct="true" onclick="checkAnswer(this, true)">بتكبير العناوين المهمة</button>
+            </div>
+            <div class="feedback"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>3. البساطة والوضوح (Minimalism)</h3>
+        <p>
+            تكدس الشاشة يشتت الزائر. نستخدم "المساحات البيضاء" كعنصر تصميمي لإراحة العين.
+        </p>
+        <img src="5.jpg" width="350" alt="صورة 5">
+
+        <button class="quiz-btn" onclick="toggleQuiz('q-3')">سؤال سريع</button>
+        <div id="q-3" class="quiz-box">
+            <p><strong>ما فائدة المساحات البيضاء؟</strong></p>
+            <div class="options">
+                <button class="option-btn" data-correct="true" onclick="checkAnswer(this, true)">إراحة العين وإبراز المعلومات</button>
+                <button class="option-btn" onclick="checkAnswer(this, false)">جعل الموقع بطيئاً</button>
+            </div>
+            <div class="feedback"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>4. التناسق (Consistency)</h3>
+        <p>
+            يجب الحفاظ على هوية بصرية واحدة (نفس الألوان والخطوط) في جميع الصفحات لبناء الثقة.
+        </p>
+        <img src="6.jpg" width="350" alt="صورة 6">
+
+        <button class="quiz-btn" onclick="toggleQuiz('q-4')">سؤال سريع</button>
+        <div id="q-4" class="quiz-box">
+            <p><strong>ما نتيجة التناسق في التصميم؟</strong></p>
+            <div class="options">
+                <button class="option-btn" onclick="checkAnswer(this, false)">تشتت الزائر</button>
+                <button class="option-btn" data-correct="true" onclick="checkAnswer(this, true)">بناء الثقة وإشعاره بالاحترافية</button>
+            </div>
+            <div class="feedback"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>5. سرعة الاستجابة (Responsiveness)</h3>
+        <p>
+            التصميم المتجاوب يعني أن الموقع يتمتع بمرونة لتغيير ترتيب عناصره ليناسب أي شاشة (هاتف، جهاز لوحي، كمبيوتر).
+        </p>
+        <img src="7.jpg" width="350" alt="صورة 7">
+
+        <button class="quiz-btn" onclick="toggleQuiz('q-5')">سؤال سريع</button>
+        <div id="q-5" class="quiz-box">
+            <p><strong>ماذا يعني التصميم المتجاوب؟</strong></p>
+            <div class="options">
+                <button class="option-btn" data-correct="true" onclick="checkAnswer(this, true)">مرونة الموقع ليتناسب مع الشاشات المختلفة</button>
+                <button class="option-btn" onclick="checkAnswer(this, false)">عمل الموقع على الكمبيوتر فقط</button>
+            </div>
+            <div class="feedback"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>6. تجربة المستخدم (UX)</h3>
+        <p>
+            هي الشعور العام للموقع. يجب أن تكون القوائم سهلة والعثور على المعلومات سريعاً وبدون خطوات معقدة.
+        </p>
+        <img src="8.jpg" width="350" alt="صورة 8">
+    </div>
+
+    <div class="section">
+        <h3>7. التصميم البصري الحديث</h3>
+        <p>
+            يجب استخدام صور واضحة، ألوان مريحة، والابتعاد عن الزخارف المبالغ فيها.
+        </p>
+        <img src="9.jpg" width="350" alt="صورة 9">
+    </div>
+
+    <div class="section">
+        <h3 style="text-align: center; color: green;">فيديو الشرح الكامل</h3>
+        <video width="500" controls>
+            <source src="video.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="preview.html" style="display:inline-block; background-color:#6c5ce7; color:white; padding:14px 30px; font-size:18px; border-radius:8px; text-decoration:none; font-weight:bold; transition:background 0.3s;">&#128269; معاينة كود الصفحة</a>
+    </div>
+
+    <div>
+        <h3 style="color: orange;">نصائح إضافية:</h3>
+        <ul>
+            <li>التغذية الراجعة مهمة جداً لتطوير الموقع.</li>
+            <li>يجب تحسين حجم الصور لضمان سرعة التحميل.</li>
+        </ul>
+    </div>
+
+</div>
+
+<script>
+function toggleQuiz(id) {
+    var box = document.getElementById(id);
+    if (box.style.display === "block") {
+        box.style.display = "none";
+    } else {
+        box.style.display = "block";
+    }
+}
+
+function checkAnswer(btn, isCorrect) {
+    var parent = btn.parentElement;
+    var buttons = parent.getElementsByTagName("button");
+    var feedback = parent.nextElementSibling;
+
+    for (var i = 0; i < buttons.length; i++) {
+        buttons[i].disabled = true;
+        if (buttons[i].getAttribute("data-correct") === "true") {
+            buttons[i].style.backgroundColor = "green";
+            buttons[i].style.color = "white";
+        }
+    }
+
+    if (isCorrect) {
+        btn.style.backgroundColor = "green";
+        btn.style.color = "white";
+        feedback.innerHTML = "إجابة صحيحة!";
+        feedback.style.color = "green";
+    } else {
+        btn.style.backgroundColor = "red";
+        btn.style.color = "white";
+        feedback.innerHTML = "إجابة خاطئة، الصحيحة باللون الأخضر.";
+        feedback.style.color = "red";
+    }
+}
+<\/script>
+
+</body>
+</html>`;
+
+        const codeElement = document.getElementById('code-block');
+        codeElement.textContent = htmlSource;
+
+        function copyCode() {
+            navigator.clipboard.writeText(htmlSource).then(() => {
+                alert('تم نسخ الكود البرمجي بنجاح!');
+            }).catch(() => {
+                const textarea = document.createElement('textarea');
+                textarea.value = htmlSource;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('تم نسخ الكود البرمجي بنجاح!');
+            });
+        }
+    </script>
+</body>
+</html>
